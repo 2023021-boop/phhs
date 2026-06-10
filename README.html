@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pin Hwa High School Song - Arcade Rhythm</title>
+    <style>
+        :root {
+            --bg-color: #0a0b10;
+            --lane-color: rgba(255, 255, 255, 0.02);
+            --lane-border: rgba(255, 255, 255, 0.08);
+            --perfect-glow: #00f3ff;
+            --great-glow: #a600ff;
+            --good-glow: #00ff6a;
+            --miss-glow: #ff0055;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 750px;
+            background: #0f111a;
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9), 0 0 30px rgba(0, 243, 255, 0.15);
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* Left Dashboard Control Panel */
+        #panel {
+            width: 300px;
+            padding: 25px;
+            box-sizing: border-box;
+            background: rgba(10, 12, 22, 0.95);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 10;
+        }
+
+        .title-section h1 {
+            font-size: 20px;
+            margin: 0 0 4px 0;
+            background: linear-gradient(45deg, #00f3ff, #a600ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        .title-section h2 {
+            font-size: 12px;
+            color: #7e8294;
+            margin: 0 0 20px 0;
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+
+        .stat-box {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #656874;
+            letter-spacing: 1.5px;
+        }
+        .stat-value {
+            font-size: 26px;
+            font-weight: bold;
+            font-family: monospace;
+            margin-top: 3px;
+        }
+        #score-val { color: #ffe600; }
+        #combo-val { color: #00f3ff; }
+        #rank-val { color: #ff0055; text-shadow: 0 0 10px rgba(255,0,85,0.4); }
+
+        .speed-slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .speed-slider-container input[type=range] {
+            width: 100%;
+            accent-color: var(--perfect-glow);
+            cursor: pointer;
+            background: #252836;
+            height: 6px;
+            border-radius: 3px;
+        }
+
+        #upload-zone {
+            border: 2px dashed #34384e;
+            padding: 18px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.01);
+        }
+        #upload-zone:hover {
+            border-color: var(--perfect-glow);
+            background: rgba(0, 243, 255, 0.04);
+        }
+        #upload-zone p {
+            margin: 0;
+            font-size: 12px;
+            color: #a0a5b5;
+            line-height: 1.5;
+        }
+
+        .key-hints {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+        }
+        .key-cap {
+            background: #252836;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 13px;
+            border-bottom: 3px solid #151722;
+            color: #00f3ff;
+            min-width: 16px;
+            text-align: center;
+        }
+        .pause-hint {
+            font-size: 11px;
+            color: #555866;
+            text-align: center;
+            margin-top: 5px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Right Play Arena Area */
+        #stage {
+            position: relative;
+            width: 500px;
+            height: 100%;
+            background: #05060a;
+        }
+
+        /* Background Video Player Layer */
+        #bg-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Judgement Overlays */
+        #judgement-display {
+            position: absolute;
+            top: 55%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 38px;
+            font-weight: 900;
+            font-style: italic;
+            letter-spacing: 2px;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 2;
+            transition: transform 0.04s ease-out;
+        }
+        .judge-perfect { color: var(--perfect-glow); text-shadow: 0 0 15px rgba(0,243,255,0.7); }
+        .judge-great { color: var(--great-glow); text-shadow: 0 0 15px rgba(166,0,255,0.7); }
+        .judge-good { color: var(--good-glow); text-shadow: 0 0 15px rgba(0,255,106,0.7); }
+        .judge-miss { color: var(--miss-glow); text-shadow: 0 0 15px rgba(255,0,85,0.7); }
+
+        .active-combo {
+            position: absolute;
+            top: 42%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 52px;
+            font-weight: 800;
+            color: rgba(255, 255, 255, 0.12);
+            font-family: monospace;
+            pointer-events: none;
+            text-align: center;
+            display: none;
+            z-index: 2;
+        }
+        .active-combo span {
+            font-size: 13px;
+            display: block;
+            letter-spacing: 4px;
+            color: rgba(255,255,255,0.06);
+        }
+
+        /* Arcade Overlay Windows (Pause Menu & Results Screen) */
+        .arcade-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(7, 8, 14, 0.94);
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .arcade-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .overlay-title {
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #656874;
+            margin-bottom: 5px;
+        }
+        .pause-header {
+            font-size: 32px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            color: var(--perfect-glow);
+            text-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+            margin-bottom: 30px;
+        }
+        .results-rank {
+            font-size: 90px;
+            font-weight: 900;
+            margin: 5px 0;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+        }
+        .results-badge {
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        .results-score {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffe600;
+            font-family: monospace;
+        }
+        .results-combo {
+            font-size: 16px;
+            color: #a0a5b5;
+            margin-top: 5px;
+            margin-bottom: 30px;
+        }
+
+        /* Menu Button Styles */
+        .btn-arcade {
+            background: #202330;
+            border: 1px solid rgba(255,255,255,0.08);
+            color: white;
+            padding: 12px 0;
+            width: 180px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 6px 0;
+            transition: all 0.2s;
+        }
+        .btn-arcade:hover {
+            background: linear-gradient(45deg, #00f3ff, #a600ff);
+            border-color: transparent;
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 243, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="panel">
+            <div class="title-section">
+                <h1>滨华中学校歌</h1>
+                <h2>PIN HWA HIGH SCHOOL</h2>
+                
+                <div class="stat-box">
+                    <div class="stat-label">Score</div>
+                    <div id="score-val" class="stat-value">000,000</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Current Rank</div>
+                    <div id="rank-val" class="stat-value">FAIL</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Max Combo</div>
+                    <div id="combo-val" class="stat-value">0</div>
+                </div>
+
+                <div class="stat-box speed-slider-container">
+                    <div class="stat-label" style="display: flex; justify-content: space-between;">
+                        <span>Scroll Speed</span>
+                        <span id="speed-txt" style="color: var(--perfect-glow); font-weight: bold;">4.5x</span>
+                    </div>
+                    <input type="range" id="speed-slider" min="1.0" max="10.0" step="0.5" value="4.5">
+                </div>
+            </div>
+
+            <div>
+                <div id="upload-zone">
+                    <p id="upload-text">Drag & Drop <b>MP3</b> or <b>MP4 Video</b> here<br>or click to browse</p>
+                    <input type="file" id="file-input" accept="audio/*,video/*" style="display:none">
+                </div>
+                <div class="key-hints">
+                    <div class="key-cap">D</div>
+                    <div class="key-cap">F</div>
+                    <div class="key-cap">J</div>
+                    <div class="key-cap">K</div>
+                </div>
+                <div class="pause-hint">Press <b>ESC</b> to Pause / Retry</div>
+            </div>
+        </div>
+
+        <div id="stage">
+            <video id="bg-video" playsinline></video>
+            
+            <div id="active-combo-box" class="active-combo">0<span>COMBO</span></div>
+            <div id="judgement-display">PERFECT</div>
+            <canvas id="gameCanvas"></canvas>
+
+            <div id="pause-screen" class="arcade-overlay">
+                <div class="pause-header">PAUSED</div>
+                <button class="btn-arcade" onclick="resumeGame()">Resume</button>
+                <button class="btn-arcade" onclick="retryGame()">Retry</button>
+            </div>
+
+            <div id="results-screen" class="arcade-overlay">
+                <div class="results-title">Stage Clear</div>
+                <div id="res-rank" class="results-rank">SSS</div>
+                <div id="res-badge" class="results-badge"></div>
+                <div id="res-score" class="results-score">000,000</div>
+                <div id="res-combo" class="results-combo">MAX COMBO: 0</div>
+                <button class="btn-arcade" onclick="closeResults()">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const fileInput = document.getElementById('file-input');
+        const uploadZone = document.getElementById('upload-zone');
+        const uploadText = document.getElementById('upload-text');
+        const speedSlider = document.getElementById('speed-slider');
+        const speedTxt = document.getElementById('speed-txt');
+        const bgVideo = document.getElementById('bg-video');
+        const pauseScreen = document.getElementById('pause-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        
+        // Canvas Setup Constants
+        const LANE_COUNT = 4;
+        let stageWidth = 500;
+        let stageHeight = 750;
+        canvas.width = stageWidth;
+        canvas.height = stageHeight;
+
+        const laneWidth = stageWidth / LANE_COUNT;
+        const judgementLineY = stageHeight - 100;
+        const noteHeight = 16;
+        
+        // Speed Multiplier Calculations
+        let scrollSpeed = 0.2 * parseFloat(speedSlider.value); 
+
+        speedSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            speedTxt.innerText = val.toFixed(1) + 'x';
+            scrollSpeed = 0.2 * val;
+            speedSlider.blur();
+        });
+
+        // Dynamic State Variables
+        let isPlaying = false;
+        let isPaused = false;
+        let score = 0;
+        let combo = 0;
+        let maxCombo = 0;
+        let perfectHits = 0; // Tracks total flawless strikes
+        let mediaDuration = 61000; // Target Max Runtime Limit = 1min01s
+        
+        const keysPressed = [false, false, false, false];
+        const keyMap = { 'd': 0, 'f': 1, 'j': 2, 'k': 3, 'D': 0, 'F': 1, 'J': 2, 'K': 3 };
+
+        // Calibrated Chart Mapping Up to exactly 1 minute and 1 second (Total combo steps out to exactly 104)
+        let baseNotes = [
+            // Intro Trumpet Brass Fanfare Elements
+            { time: 2000, lane: 0, type: 'tap' },
+            { time: 2450, lane: 1, type: 'tap' },
+            { time: 2900, lane: 2, type: 'tap' },
+            { time: 3350, lane: 3, type: 'tap' },
+            { time: 3800, lane: 1, type: 'tap' },
+            { time: 4250, lane: 2, type: 'tap' },
+            { time: 4700, lane: 0, type: 'tap' },
+            { time: 4700, lane: 3, type: 'tap' }, 
+
+            // Verse 1 Lines
+            { time: 6000, lane: 0, type: 'tap' },
+            { time: 6300, lane: 1, type: 'tap' },
+            { time: 6600, lane: 2, type: 'tap' },
+            { time: 6900, lane: 3, type: 'tap' },
+            { time: 7400, lane: 1, type: 'slide', duration: 1200 }, 
+            { time: 8800, lane: 2, type: 'slide', duration: 1200 },
+
+            // Line 2 Spacing
+            { time: 10500, lane: 0, type: 'tap' },
+            { time: 10950, lane: 3, type: 'tap' },
+            { time: 11400, lane: 1, type: 'tap' },
+            { time: 11850, lane: 2, type: 'tap' },
+            { time: 12300, lane: 0, type: 'tap' },
+            { time: 12300, lane: 3, type: 'tap' },
+            { time: 13200, lane: 1, type: 'slide', duration: 1500 },
+
+            // Verse 2 Build Spacing
+            { time: 15500, lane: 0, type: 'tap' },
+            { time: 15800, lane: 1, type: 'tap' },
+            { time: 16100, lane: 2, type: 'tap' },
+            { time: 16400, lane: 3, type: 'tap' },
+            { time: 17000, lane: 0, type: 'slide', duration: 1000 },
+            { time: 17000, lane: 3, type: 'slide', duration: 1000 },
+
+            { time: 19500, lane: 1, type: 'tap' },
+            { time: 19950, lane: 2, type: 'tap' },
+            { time: 20400, lane: 0, type: 'tap' },
+            { time: 20850, lane: 3, type: 'tap' },
+            { time: 21500, lane: 2, type: 'slide', duration: 1800 },
+
+            // Pre-Chorus Engine Notes
+            { time: 24000, lane: 3, type: 'tap' },
+            { time: 24300, lane: 2, type: 'tap' },
+            { time: 24600, lane: 1, type: 'tap' },
+            { time: 24900, lane: 0, type: 'tap' },
+            { time: 25500, lane: 1, type: 'slide', duration: 1400 },
+
+            { time: 28000, lane: 0, type: 'tap' },
+            { time: 28450, lane: 3, type: 'tap' },
+            { time: 28900, lane: 1, type: 'tap' },
+            { time: 29350, lane: 2, type: 'tap' },
+            { time: 30000, lane: 0, type: 'slide', duration: 1600 },
+            { time: 30000, lane: 3, type: 'slide', duration: 1600 },
+
+            // Climax Main Chorus Lines
+            { time: 33000, lane: 1, type: 'tap' },
+            { time: 33300, lane: 2, type: 'tap' },
+            { time: 33600, lane: 1, type: 'tap' },
+            { time: 33900, lane: 2, type: 'tap' },
+            { time: 34350, lane: 0, type: 'tap' },
+            { time: 34800, lane: 3, type: 'tap' },
+            { time: 35400, lane: 1, type: 'slide', duration: 1200 },
+            { time: 36800, lane: 2, type: 'slide', duration: 1200 },
+
+            { time: 38800, lane: 0, type: 'tap' },
+            { time: 39250, lane: 1, type: 'tap' },
+            { time: 39700, lane: 2, type: 'tap' },
+            { time: 40150, lane: 3, type: 'tap' },
+            { time: 40600, lane: 1, type: 'tap' },
+            { time: 41050, lane: 2, type: 'tap' },
+            { time: 41800, lane: 0, type: 'slide', duration: 2000 },
+
+            { time: 44500, lane: 1, type: 'tap' },
+            { time: 44950, lane: 2, type: 'tap' },
+            { time: 45400, lane: 0, type: 'tap' },
+            { time: 45400, lane: 3, type: 'tap' },
+            { time: 46200, lane: 1, type: 'slide', duration: 2500 },
+            { time: 46200, lane: 2, type: 'slide', duration: 2500 },
+
+            // Outro Run Stream Sequence
+            { time: 49800, lane: 0, type: 'tap' },
+            { time: 50100, lane: 1, type: 'tap' },
+            { time: 50400, lane: 2, type: 'tap' },
+            { time: 50700, lane: 3, type: 'tap' },
+            { time: 51500, lane: 0, type: 'tap' },
+            { time: 51500, lane: 2, type: 'tap' },
+            
+            // Dense 132 BPM March Outro
+            { time: 52500, lane: 1, type: 'tap' },
+            { time: 52950, lane: 2, type: 'tap' },
+            { time: 53400, lane: 0, type: 'tap' },
+            { time: 53850, lane: 3, type: 'tap' },
+            { time: 54300, lane: 1, type: 'slide', duration: 1500 },
+            { time: 54300, lane: 2, type: 'slide', duration: 1500 },
+            { time: 56500, lane: 0, type: 'tap' },
+            { time: 56950, lane: 3, type: 'tap' },
+            { time: 57400, lane: 1, type: 'tap' },
+            { time: 57850, lane: 2, type: 'tap' },
+            { time: 58300, lane: 0, type: 'tap' },
+            { time: 58750, lane: 1, type: 'tap' },
+            { time: 59200, lane: 2, type: 'tap' },
+            { time: 59650, lane: 3, type: 'tap' },
+            
+            // Massive Grand Final Chord Strike at exactly 1 Minute Marks
+            { time: 60000, lane: 0, type: 'tap' },
+            { time: 60000, lane: 1, type: 'tap' },
+            { time: 60000, lane: 2, type: 'tap' },
+            { time: 60000, lane: 3, type: 'tap' }
+        ];
+
+        let notes = [];
+
+        function resetNotesArray() {
+            notes = JSON.parse(JSON.stringify(baseNotes));
+            notes.forEach(n => {
+                n.hit = false;
+                n.miss = false;
+                if (n.type === 'slide') {
+                    n.holding = false;
+                    n.releasedEarly = false;
+                }
+            });
+        }
+        resetNotesArray();
+
+        // UI Interactions
+        uploadZone.addEventListener('click', () => fileInput.click());
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.style.borderColor = "#00f3ff"; });
+        uploadZone.addEventListener('dragleave', () => { uploadZone.style.borderColor = "#34384e"; });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+        });
+
+        function handleFile(file) {
+            uploadText.innerText = "Processing track details...";
+            const fileURL = URL.createObjectURL(file);
+            bgVideo.src = fileURL;
+            bgVideo.load();
+            
+            uploadText.innerHTML = "🎉 <b>Media Loaded Successfully!</b><br>Press Space or click to Play";
+            resetGame();
+        }
+
+        function resetGame() {
+            score = 0;
+            combo = 0;
+            maxCombo = 0;
+            perfectHits = 0;
+            isPlaying = false;
+            isPaused = false;
+            bgVideo.pause();
+            bgVideo.currentTime = 0;
+            resetNotesArray();
+            updateStats();
+            pauseScreen.classList.remove('show');
+            resultsScreen.classList.remove('show');
+        }
+
+        function startGame() {
+            if (!bgVideo.src) return;
+            resetGame();
+            
+            bgVideo.play().then(() => {
+                isPlaying = true;
+                document.getElementById('active-combo-box').style.display = 'block';
+                requestAnimationFrame(gameLoop);
+            }).catch(err => {
+                uploadText.innerText = "Click here to enable permissions.";
+            });
+        }
+
+        // Global Key Interceptor Menu Logic
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !isPlaying && !isPaused && !resultsScreen.classList.contains('show')) {
+                e.preventDefault();
+                startGame();
+            }
+            if (e.code === 'Escape') {
+                e.preventDefault();
+                if (isPlaying && !resultsScreen.classList.contains('show')) {
+                    togglePause();
+                }
+            }
+        });
+
+        // Pause Menu Controls
+        function togglePause() {
+            if (isPaused) {
+                resumeGame();
+            } else {
+                isPaused = true;
+                bgVideo.pause();
+                pauseScreen.classList.add('show');
+            }
+        }
+
+        function resumeGame() {
+            isPaused = false;
+            pauseScreen.classList.remove('show');
+            document.activeElement?.blur(); 
+            bgVideo.play().then(() => {
+                requestAnimationFrame(gameLoop);
+            });
+        }
+
+        function retryGame() {
+            isPaused = false;
+            pauseScreen.classList.remove('show');
+            document.activeElement?.blur();
+            startGame();
+        }
+
+        // Dynamic Grading Calculation Mapping
+        function calculateRank(currentScore) {
+            if (currentScore >= 100000) return { name: 'SSS', color: '#ff0055' };
+            if (currentScore >= 90000) return { name: 'S', color: '#ffe600' };
+            if (currentScore >= 80000) return { name: 'A', color: '#00f3ff' };
+            if (currentScore >= 60000) return { name: 'B', color: '#00ff6a' };
+            return { name: 'FAIL', color: '#656874' };
+        }
+
+        function updateStats() {
+            document.getElementById('score-val').innerText = String(score).padStart(6, '0');
+            document.getElementById('combo-val').innerText = maxCombo;
+            
+            const currentRank = calculateRank(score);
+            const rankEl = document.getElementById('rank-val');
+            rankEl.innerText = currentRank.name;
+            rankEl.style.color = currentRank.color;
+
+            const comboContainer = document.getElementById('active-combo-box');
+            comboContainer.innerHTML = combo + "<span>COMBO</span>";
+            comboContainer.style.color = combo > 0 ? `rgba(255,255,255,${Math.min(0.12 + combo*0.01, 0.75)})` : 'rgba(255,255,255,0.12)';
+        }
+
+        function triggerJudgement(text, typeClass) {
+            const el = document.getElementById('judgement-display');
+            el.innerText = text;
+            el.className = typeClass;
+            el.style.opacity = 1;
+            el.style.transform = 'translate(-50%, -50%) scale(1.15)';
+            setTimeout(() => {
+                el.style.transform = 'translate(-50%, -50%) scale(1)';
+            }, 40);
+        }
+
+        function judgeHit(diff) {
+            const abs = Math.abs(diff);
+            if (abs <= 30) return { name: 'PERFECT', score: 1400, cls: 'judge-perfect' };
+            if (abs <= 40) return { name: 'GREAT', score: 950, cls: 'judge-great' };
+            if (abs <= 70) return { name: 'GOOD', score: 500, cls: 'judge-good' };
+            return null;
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            const lane = keyMap[e.key];
+            if (lane !== undefined) {
+                keysPressed[lane] = true;
+                if (!isPlaying || isPaused) return;
+
+                const curTime = bgVideo.currentTime * 1000;
+                let targetNote = notes.find(n => n.lane === lane && !n.hit && !n.miss && Math.abs(n.time - curTime) <= 100);
+                
+                if (targetNote) {
+                    let judgment = judgeHit(targetNote.time - curTime);
+                    if (judgment) {
+                        targetNote.hit = true;
+                        score += judgment.score;
+                        combo++;
+                        if (combo > maxCombo) maxCombo = combo;
+                        triggerJudgement(judgment.name, judgment.cls);
+                        
+                        if (judgment.name === 'PERFECT') {
+                            perfectHits++;
+                        }
+                        
+                        if (targetNote.type === 'slide') {
+                            targetNote.holding = true;
+                        }
+                        updateStats();
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const lane = keyMap[e.key];
+            if (lane !== undefined) {
+                keysPressed[lane] = false;
+                if (!isPlaying || isPaused) return;
+                
+                const curTime = bgVideo.currentTime * 1000;
+                let activeHold = notes.find(n => n.lane === lane && n.type === 'slide' && n.holding && !n.releasedEarly);
+                if (activeHold) {
+                    let endPoint = activeHold.time + activeHold.duration;
+                    if (curTime < endPoint - 40) {
+                        activeHold.releasedEarly = true;
+                        activeHold.holding = false;
+                        combo = 0;
+                        triggerJudgement('MISS (RELEASE)', 'judge-miss');
+                        updateStats();
+                    }
+                }
+            }
+        });
+
+        function endMatch() {
+            isPlaying = false;
+            bgVideo.pause();
+            
+            const finalRank = calculateRank(score);
+            document.getElementById('res-rank').innerText = finalRank.name;
+            document.getElementById('res-rank').style.color = finalRank.color;
+            document.getElementById('res-score').innerText = String(score).padStart(6, '0');
+            document.getElementById('res-combo').innerText = "MAX COMBO: " + maxCombo;
+            
+            // Accolade Logic Engine
+            const badgeEl = document.getElementById('res-badge');
+            if (perfectHits === 104) {
+                badgeEl.innerText = "ALL PERFECT";
+                badgeEl.style.color = "#00f3ff";
+                badgeEl.style.textShadow = "0 0 20px rgba(0, 243, 255, 0.6)";
+            } else if (maxCombo === 104) {
+                badgeEl.innerText = "FULL COMBO";
+                badgeEl.style.color = "#ffe600";
+                badgeEl.style.textShadow = "0 0 20px rgba(255, 230, 0, 0.6)";
+            } else {
+                badgeEl.innerText = "";
+            }
+            
+            resultsScreen.classList.add('show');
+        }
+
+        function closeResults() {
+            resultsScreen.classList.remove('show');
+            resetGame();
+        }
+
+        // Gameplay Frame Render Loop
+        function gameLoop() {
+            if (!isPlaying || isPaused) return;
+            
+            const curTime = bgVideo.currentTime * 1000;
+
+            if (curTime >= mediaDuration) {
+                endMatch();
+                return;
+            }
+
+            ctx.clearRect(0, 0, stageWidth, stageHeight);
+
+            // 1. Draw Columns Lanes
+            for (let i = 0; i < LANE_COUNT; i++) {
+                if (keysPressed[i]) {
+                    let gradient = ctx.createLinearGradient(0, 0, 0, stageHeight);
+                    gradient.addColorStop(0, 'rgba(0, 243, 255, 0.0)');
+                    gradient.addColorStop(1, 'rgba(0, 243, 255, 0.1)');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(i * laneWidth, 0, laneWidth, stageHeight);
+                } else {
+                    ctx.fillStyle = varColor('--lane-color');
+                    ctx.fillRect(i * laneWidth, 0, laneWidth, stageHeight);
+                }
+                ctx.strokeStyle = varColor('--lane-border');
+                ctx.lineWidth = 1;
+                ctx.strokeRect(i * laneWidth, 0, laneWidth, stageHeight);
+            }
+
+            // 2. Draw Judgement Target Line Element Bar
+            ctx.strokeStyle = '#ffe600';
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = 'rgba(255, 230, 0, 0.4)';
+            ctx.beginPath();
+            ctx.moveTo(0, judgementLineY);
+            ctx.lineTo(stageWidth, judgementLineY);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // 3. Note Processing and Tracing
+            notes.forEach(note => {
+                if (note.miss) return;
+
+                if (!note.hit && curTime > note.time + 100) {
+                    note.miss = true;
+                    combo = 0;
+                    triggerJudgement('MISS', 'judge-miss');
+                    updateStats();
+                    return;
+                }
+
+                if (note.type === 'slide' && note.holding) {
+                    let endPoint = note.time + note.duration;
+                    if (curTime >= endPoint) {
+                        note.holding = false;
+                        score += 800; 
+                        combo++;
+                        perfectHits++; // Release held perfectly counts toward accuracy
+                        if (combo > maxCombo) maxCombo = combo;
+                        triggerJudgement('PERFECT CLEAR', 'judge-perfect');
+                        updateStats();
+                    }
+                }
+
+                let yPosition = judgementLineY - (note.time - curTime) * scrollSpeed;
+
+                if (note.type === 'tap') {
+                    if (!note.hit) {
+                        drawNeonBar(note.lane * laneWidth + 4, yPosition, laneWidth - 8, noteHeight, '#00f3ff');
+                    }
+                } else if (note.type === 'slide') {
+                    let tailY = judgementLineY - ((note.time + note.duration) - curTime) * scrollSpeed;
+                    let currentHeadY = note.holding ? judgementLineY : yPosition;
+
+                    if (tailY < judgementLineY) {
+                        ctx.fillStyle = note.holding ? 'rgba(0, 255, 106, 0.45)' : 'rgba(166, 0, 255, 0.3)';
+                        ctx.fillRect(note.lane * laneWidth + 12, tailY, laneWidth - 24, currentHeadY - tailY);
+                        
+                        if (tailY > 0) {
+                            drawNeonBar(note.lane * laneWidth + 8, tailY, laneWidth - 16, 6, '#ba00ff');
+                        }
+                        if (!note.hit) {
+                            drawNeonBar(note.lane * laneWidth + 4, yPosition, laneWidth - 8, noteHeight, '#00ff6a');
+                        }
+                    }
+                }
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function drawNeonBar(x, y, w, h, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.roundRect(x, y - h/2, w, h, 4);
+            ctx.fill();
+        }
+
+        function varColor(name) {
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        }
+    </script>
+</body>
+</html>
